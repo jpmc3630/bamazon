@@ -1,7 +1,6 @@
 # BAMAZON Node/SQL CLI app
 
 BAMAZON is a retail store stock management app built in NODE.JS and SQL.
-This GIF gives a quick demonstration of all three parts of the app.
 
 ![BAMAZON demo gif](demo/bamazonDEMO.gif)
 
