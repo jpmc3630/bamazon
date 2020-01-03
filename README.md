@@ -11,8 +11,6 @@ The app is in three parts:
 
 This is what would run on a POS terminal. It lists products available, quantity, price etc. and allows the customer to make purchases and updates the inventory database.
 
-  <br>
-
 **Bamazon Manager** <BR>
 `node bamazonManager.js`
 
@@ -22,8 +20,6 @@ This is what the store manager would use to perform managerial tasks such as:<br
 * Add stock to inventory
 * Add new products
 * Remove product
-
-  <br>
 
 **Bamazon Supervisor** <BR>
 `node bamazonSupervisor.js`
