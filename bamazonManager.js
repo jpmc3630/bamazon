@@ -1,4 +1,3 @@
-
 let logo = `
      _____     _      _____ _           
     |  _  |___| |_   |   __| |_ ___ ___ 
@@ -7,16 +6,12 @@ let logo = `
                                    |_|    
 `;
 
-let inventory;
+let inventory = [];
 
 var mysql = require("mysql");
 var inquirer = require("inquirer");
-
-
-
 const {table} = require('table')
 let data, output;
-
 
 var connection = mysql.createConnection({
 host: "localhost",
@@ -28,36 +23,35 @@ database: "bamazon"
 
 connection.connect(function(err) {
 if (err) {
- console.error("error connecting: " + err.stack);
+ console.error("error connecting to inventory database: " + err.stack);
  return;
 }
 
-// console.log("connected as id " + connection.threadId);
-});
-
+console.log("connected as id " + connection.threadId);
 console.clear();
 console.log(logo);
 runMenu();
+
+});
+
+
 
 function runMenu() {
 
         let menuArr = [
             `View Products for Sale`,
             `View Low Inventory`,
-            `Add to Inventory`,
-            `Add New Product`
+            `Add Stock to Inventory`,
+            `Add New Product`,
+            `Delete Product from Inventory`
         ];
 
         const questions = [
             { type: 'list', name: 'menu', message: 'Please make a choice:', choices: menuArr }];
 
-        
-
         inquirer
         .prompt(questions)
         .then(function (answers) {
-
-
 
                 switch(answers.menu) {
                     case `View Products for Sale`:
@@ -66,11 +60,14 @@ function runMenu() {
                     case `View Low Inventory`:
                         lowInventory();
                         break;
-                    case `Add to Inventory`:
+                    case `Add Stock to Inventory`:
                         printInventory('add');
                         break;
                     case `Add New Product`:
                         addProduct();
+                        break;
+                    case `Delete Product from Inventory`:
+                        printInventory('deleteProduct');
                         break;
                     default:
                     console.log(`\n An error has occurred.`);
@@ -113,7 +110,7 @@ function lowInventory(message) {
         });
       });
 
-      data.unshift([`ID`, `Product Name`, `Department`, `Price`, `Quantity`]);
+      data.unshift([`ID`, `Product Name`, `Department`, `Price`, `Quantity`, `Sales`]);
 
       output = table(data, options);
       console.log(output);
@@ -128,19 +125,38 @@ function lowInventory(message) {
 
   function printInventory(message) {
 
-    connection.query("SELECT * FROM bamazon.products;", function(err, result) {
-      if (err) throw err;
-  
-      inventory = result;
-  
     console.clear();
     console.log(logo);
+
     if (message == 'add') {
         console.log(`ADD NEW STOCK TO INVENTORY`);
+        } else if (message == 'deleteProduct') {
+            console.log(`REMOVE PRODUCT FROM DATABASE`);
         } else {
             console.log(`ALL INVENTORY`);
         }
 
+    connection.query("SELECT * FROM bamazon.products;", function(err, result) {
+      if (err) throw err;
+  
+      let displayInventory = [];
+      
+      inventory = [];
+      for ( let i = 0 ; i < result.length ; i++) {
+        inventory[parseInt(result[i].item_id)] = result[i];
+      }
+
+      displayInventory = inventory.filter(function (el) {
+        return el != null;
+      });
+      
+        let data = displayInventory.map(function(obj) {
+          return Object.keys(obj).map(function(key) { 
+            return obj[key];
+          });
+        });
+
+      data.unshift([`ID`, `Product Name`, `Department`, `Price`, `Quantity`, `Sales`]);
 
       options = {
         drawHorizontalLine: (index, size) => {
@@ -159,20 +175,13 @@ function lowInventory(message) {
         }
       };
 
-        let data = inventory.map(function(obj) {
-            return Object.keys(obj).map(function(key) { 
-            return obj[key];
-            });
-        });
-
-        data.unshift([`ID`, `Product Name`, `Department`, `Price`, `Quantity`]);
-
-        output = table(data, options);
-        console.log(output);
-
+      output = table(data, options);
+      console.log(output);
       
         if (message == 'add') {
         addInventory();
+        } else if (message == 'deleteProduct') {
+        deleteProduct();
         } else {
         if (message) console.log(message);
         runMenu();
@@ -187,9 +196,9 @@ function lowInventory(message) {
     let theID;
     let idArr = [];
   
-    for (let i = 0 ; i < inventory.length; i++) {
-      idArr.push(inventory[i].item_id);
-    }
+    for (keys in inventory) {
+        idArr.push(inventory[keys].item_id);
+      }
   
     inquirer
     .prompt({type: 'input', name: 'item', message: 'Enter Item ID for new stock:\n', validate: function( value ) {
@@ -205,7 +214,7 @@ function lowInventory(message) {
     .then(function (answers) {
   
           theID = parseInt(answers.item);
-          theItem = inventory[parseInt(answers.item)-1].product_name;
+          theItem = inventory[parseInt(answers.item)].product_name;
   
             inquirer
             .prompt({type: 'input', name: 'quantity', message: `Enter quantity of new stock of ${theItem}\n`, validate: function( value ) {
@@ -250,7 +259,7 @@ function lowInventory(message) {
 
 function addStock(id, item, quantity) {
 
-            let newQuantity = inventory[id-1].stock_quantity + parseInt(quantity);
+            let newQuantity = inventory[id].stock_quantity + parseInt(quantity);
             
             connection.query("UPDATE bamazon.products SET stock_quantity = ? WHERE item_id = ?", [newQuantity, id] , function(err, result) {
             if (err) throw err;
@@ -319,7 +328,7 @@ function addProduct() {
         itemPrice = answers.price;
 
                 inquirer
-                .prompt({type: 'input', name: 'yesno', message: `Product name: ${itemName}\n Department: ${itemDepartment}\n Quantity: ${itemQuantity}\n Price: ${itemPrice}\n y/n? \n`, validate: function( value ) {
+                .prompt({type: 'input', name: 'yesno', message: `Product name: ${itemName}\n Department: ${itemDepartment}\n Quantity: ${itemQuantity}\n Price: ${itemPrice}\n Confirm? y/n \n`, validate: function( value ) {
                     let v = value.toLowerCase();
                 if (v === 'y' || v === 'yes' || v === 'n' || v === 'no') {
                     return true;
@@ -341,7 +350,7 @@ function addProduct() {
     });
   }
 
-function confirmAdd(itemName, itemDepartment, itemPrice, itemQuantity) {
+function confirmAdd(itemName, itemDepartment, itemQuantity, itemPrice) {
 
     connection.query("INSERT INTO products (product_name, department_name, price, stock_quantity) VALUES (?, ?, ?, ?)", [itemName, itemDepartment, itemPrice, itemQuantity] , function(err, result) {
         if (err) throw err;
@@ -350,4 +359,65 @@ function confirmAdd(itemName, itemDepartment, itemPrice, itemQuantity) {
 
     });
     
+}
+
+
+function deleteProduct() {
+
+    let theItem;
+    let theQuantity;
+    let theID;
+    let idArr = [];
+  
+    for (keys in inventory) {
+        idArr.push(inventory[keys].item_id);
+      }
+  
+    inquirer
+    .prompt({type: 'input', name: 'item', message: 'Enter Item ID for product to DELETE from inventory:\n', validate: function( value ) {
+  
+          if (idArr.includes(parseInt(value))) {
+            return true;
+          } else {
+            return "Please enter a valid item ID";
+          }
+      
+    }
+  })
+    .then(function (answers) {
+  
+          theID = parseInt(answers.item);
+          theItem = inventory[parseInt(answers.item)].product_name;
+  
+                      inquirer
+                      .prompt({type: 'input', name: 'yesno', message: `Confirm delete ${theItem} product permanently from database? y/n? \n`, validate: function( value ) {
+                          let v = value.toLowerCase();
+                        if (v === 'y' || v === 'yes' || v === 'n' || v === 'no') {
+                          return true;
+                        } else {
+                          return "Please enter y/n";
+                        }
+                    
+    }
+  })
+                      .then(function (answers) {
+                        let ans = answers.yesno.toLowerCase();
+                            if (ans === 'y' || ans === 'yes') {
+                              confirmDelete(theID, theItem);
+                            } else {
+                              printInventory();
+                            }
+                      });
+            });
+  }
+
+
+  function confirmDelete(idDelete, itemName) {
+
+    connection.query("DELETE FROM products WHERE item_id = ?", [idDelete] , function(err, result) {
+        if (err) throw err;
+
+        printInventory(`Deleted product ${itemName} from inventory database.\n`);
+
+    });
 }

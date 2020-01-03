@@ -6,16 +6,12 @@ let logo = `
                                   |_|
 `;
 
-let inventory;
+let inventory = [];
 
 var mysql = require("mysql");
 var inquirer = require("inquirer");
-
-
-
 const {table} = require('table')
 let data, output;
-
 
 var connection = mysql.createConnection({
     host: "localhost",
@@ -27,31 +23,42 @@ var connection = mysql.createConnection({
   
   connection.connect(function(err) {
     if (err) {
-      console.error("error connecting: " + err.stack);
+      console.error("error connecting to inventory database: " + err.stack);
       return;
     }
   
     console.log("connected as id " + connection.threadId);
+    printInventory();
   });
 
-  printInventory();
 
 
-    
+function printInventory(message) {
 
-
-
-
-  function printInventory(message) {
-
-    connection.query("SELECT * FROM bamazon.products;", function(err, result) {
-      if (err) throw err;
-  
-      inventory = result;
-  
     console.clear();
     console.log(logo);
-    
+
+    connection.query("SELECT item_id, product_name, department_name, price, stock_quantity FROM bamazon.products;", function(err, result) {
+      if (err) throw err;
+  
+      let displayInventory = [];
+      inventory = [];
+
+      for ( let i = 0 ; i < result.length ; i++) {
+        inventory[parseInt(result[i].item_id)] = result[i];
+      }
+
+      displayInventory = inventory.filter(function (el) {
+        return el != null;
+      });
+      
+        let data = displayInventory.map(function(obj) {
+          return Object.keys(obj).map(function(key) { 
+            return obj[key];
+          });
+        });
+
+      data.unshift([`ID`, `Product Name`, `Department`, `Price`, `Quantity`]);
 
       options = {
         drawHorizontalLine: (index, size) => {
@@ -70,14 +77,6 @@ var connection = mysql.createConnection({
         }
       };
 
-      let data = inventory.map(function(obj) {
-        return Object.keys(obj).map(function(key) { 
-          return obj[key];
-        });
-      });
-
-      data.unshift([`ID`, `Product Name`, `Department`, `Price`, `Quantity`]);
-
       output = table(data, options);
       console.log(output);
 
@@ -95,9 +94,9 @@ function querySale() {
   let theID;
   let idArr = [];
 
-  for (let i = 0 ; i < inventory.length; i++) {
-    idArr.push(inventory[i].item_id);
-  }
+for (keys in inventory) {
+  idArr.push(inventory[keys].item_id);
+}
 
   inquirer
   .prompt({type: 'input', name: 'item', message: 'Enter Item ID for item you would like to purchase:\n', validate: function( value ) {
@@ -113,7 +112,7 @@ function querySale() {
   .then(function (answers) {
 
         theID = parseInt(answers.item);
-        theItem = inventory[parseInt(answers.item)-1].product_name;
+        theItem = inventory[parseInt(answers.item)].product_name;
 
 
           inquirer
@@ -162,10 +161,12 @@ function makeSale(id, item, quantity) {
 
       if (result[0].stock_quantity >= quantity) {
           let newQuantity = result[0].stock_quantity - quantity;
-          
-          connection.query("UPDATE bamazon.products SET stock_quantity = ? WHERE item_id = ?", [newQuantity, id] , function(err, result) {
+          let price = inventory[id].price*quantity;
+          let newProduct_sales = result[0].product_sales + price;
+
+          connection.query("UPDATE bamazon.products SET stock_quantity = ?, product_sales = ? WHERE item_id = ?", [newQuantity, newProduct_sales, id] , function(err, result) {
             if (err) throw err;
-            let price = inventory[id-1].price*quantity;
+            
             printInventory(`Purchase Complete! \n ${quantity} x ${item}\n = $${price}`);
           });
       } else {
