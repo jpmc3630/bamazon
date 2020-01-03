@@ -5,7 +5,7 @@ BAMAZON is a retail store stock management app built in NODE.JS and SQL.
 ![BAMAZON demo gif](demo/bamazonDEMO.gif)
 
 ## Use & Features
-The app is in three parts:
+The app is in three parts. The GIF above gives a quick demo of each part.
 
 **Bamazon Customer** <BR>
 `node bamazonCustomer.js`
