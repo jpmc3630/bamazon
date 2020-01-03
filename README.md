@@ -2,10 +2,11 @@
 
 BAMAZON is a retail store stock management app built in NODE.JS and SQL.
 
+The GIF below gives a quick demo of each part. <a href="https://terminalizer.com/view/7ed422c02719">If you would prefer a web player video of this demo.</a>
 ![BAMAZON demo gif](demo/bamazonDEMO.gif)
-The GIF above gives a quick demo of each part.
 
-<a href="https://terminalizer.com/view/7ed422c02719" target="_blank">If you would prefer a web player video version of this demo.</a>
+
+
 
 
 ## Use & Features
